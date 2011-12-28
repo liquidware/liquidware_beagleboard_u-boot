@@ -60,6 +60,21 @@ struct dispc_regs {
 	u32 global_alpha;			/* 0x74 */
 	u32 size_dig;				/* 0x78 */
 	u32 size_lcd;				/* 0x7C */
+    u32 ba0;                    /* 0x80 */
+    u32 ba1;                    /* 0x84 */
+    u32 position;               /* 0x88 */
+    u32 size;                   /* 0x8C */
+    u32 skip1;                  /* 0x90 */
+    u32 skip2;                  /* 0x94 */
+    u32 skip3;                  /* 0x98 */
+    u32 skip4;                  /* 0x9C */
+    u32 attributes;             /* 0xA0 */
+    u32 fifo_threshold;         /* 0xA4 */
+    u32 fifo_size_status;       /* 0xA8 */
+    u32 row_inc;                /* 0xAC */
+    u32 pixel_inc;              /* 0xB0 */
+    u32 window_skip;            /* 0xB4 */
+    u32 table_ba;               /* 0xB8 */
 };
 
 /* VENC Registers */
