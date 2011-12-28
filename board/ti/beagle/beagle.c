@@ -187,6 +187,13 @@ unsigned int get_expansion_id(void)
 	return expansion_config.device_vendor;
 }
 
+#define CS_PIN          139
+#define MOSI_PIN        144
+#define CLK_PIN         138
+//#define RESET_PIN		137 //disabled, testing OpenPad below
+#define RESET_PIN       129
+#define PANEL_PWR_PIN   143
+
 /*
  * Configure DSS to display background color on DVID
  * Configure VENC to display color bar on S-Video
@@ -198,15 +205,32 @@ void beagle_display_init(void)
 	case REVISION_AXBX:
 	case REVISION_CX:
 	case REVISION_C4:
-		omap3_dss_panel_config(&dvid_cfg);
+		omap3_dss_panel_config(&dvid_cfg_openpad);
 		break;
 	case REVISION_XM_A:
 	case REVISION_XM_B:
 	case REVISION_XM_C:
 	default:
-		omap3_dss_panel_config(&dvid_cfg_xm);
+		//omap3_dss_panel_config(&dvid_cfg_xm);
+		omap3_dss_panel_config(&dvid_cfg_openpad);
 		break;
 	}
+
+    if (!gpio_request(CS_PIN,"") &&
+        !gpio_request(MOSI_PIN, "") &&
+        !gpio_request(CLK_PIN, "") &&
+        !gpio_request(RESET_PIN, "") &&
+        !gpio_request(PANEL_PWR_PIN, "")) {
+
+        printf("Enabling LCD panel\n");
+        gpio_direction_output(RESET_PIN, 0);
+        gpio_direction_output(RESET_PIN, 1);
+        gpio_direction_output(CS_PIN, 1);
+
+    } else {
+    	printf("Error: Unable to set display gpio\n");
+    }
+
 }
 
 /*

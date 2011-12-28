@@ -223,7 +223,7 @@ const omap3_sysinfo sysinfo = {
 	MUX_VAL(CP(MCBSP3_DX),		(IEN  | PTD | DIS | M1)) /*UART2_CTS*/\
 	MUX_VAL(CP(MCBSP3_DR),		(IDIS | PTD | DIS | M1)) /*UART2_RTS*/\
 	MUX_VAL(CP(MCBSP3_CLKX),	(IDIS | PTD | DIS | M1)) /*UART2_TX*/\
-	MUX_VAL(CP(MCBSP3_FSX),		(IEN  | PTD | DIS | M1)) /*UART2_RX*/\
+/*	MUX_VAL(CP(MCBSP3_FSX),		(IEN  | PTD | DIS | M1)) UART2_RX*/\
 	MUX_VAL(CP(UART2_CTS),		(IEN  | PTD | DIS | M4)) /*GPIO_144*/\
 	MUX_VAL(CP(UART2_RTS),		(IEN  | PTD | DIS | M4)) /*GPIO_145*/\
 	MUX_VAL(CP(UART2_TX),		(IEN  | PTD | DIS | M4)) /*GPIO_146*/\
@@ -379,6 +379,15 @@ const omap3_sysinfo sysinfo = {
 	MUX_VAL(CP(D2D_MBUSFLAG),	(IEN  | PTD | DIS | M0)) /*d2d_mbusflag*/\
 	MUX_VAL(CP(D2D_SBUSFLAG),	(IEN  | PTD | DIS | M0)) /*d2d_sbusflag*/\
 	MUX_VAL(CP(SDRC_CKE0),		(IDIS | PTU | EN  | M0)) /*sdrc_cke0*/\
+/* BeagleTouch and OpenPad */\
+	MUX_VAL(CP(MMC2_DAT7),          (IEN | PTU | EN | M4)) /*GPIO_139*/\
+	MUX_VAL(CP(UART2_TX),           (IEN | PTD | EN | M4)) /*GPIO_146*/\
+	MUX_VAL(CP(UART2_CTS),          (IEN | PTD | EN | M4)) /*GPIO_144*/\
+	MUX_VAL(CP(MMC2_DAT6),          (IEN | PTU | EN | M4)) /*GPIO_138*/\
+	MUX_VAL(CP(MMC2_DAT5),          (IEN | PTU | EN | M4)) /*GPIO_137*/\
+	MUX_VAL(CP(MMC1_DAT7),          (IEN | PTU | EN | M4)) /*GPIO_129*/\
+	MUX_VAL(CP(MCBSP3_FSX),         (IDIS | PTD | EN | M4)) /*GPIO_143*/\
+/* Beagle */\
 	MUX_VAL(CP(SDRC_CKE1),		(IDIS | PTU | EN  | M0)) /*sdrc_cke1*/
 
 #define MUX_BEAGLE_C() \
@@ -557,5 +566,29 @@ static const struct panel_config dvid_cfg_xm = {
 	.data_lines	= 0x03, /* 24 Bit RGB */
 	.load_mode	= 0x02, /* Frame Mode */
 	.panel_color	= DVI_BEAGLE_ORANGE_COL /* ORANGE */
+};
+
+static const struct panel_config dvid_cfg_beagletouch_c4 = {
+        .timing_h       = 0x06501e1d, /* Horizantal timing */
+        .timing_v       = 0x01400b02, /* Vertical timing */
+        .pol_freq       = 0x00000000, /* Pol Freq */
+        .divisor        = 0x0001000c, /* 72Mhz Pixel Clock */
+        .lcd_size       = 0x010f01df, /* 480x272 */
+        .panel_type     = 0x01, /* TFT */
+        .data_lines     = 0x03, /* 24 Bit RGB */
+        .load_mode      = 0x02, /* Frame Mode */
+        .panel_color    = DVI_BEAGLE_ORANGE_COL /* ORANGE */
+};
+
+static const struct panel_config dvid_cfg_openpad = {
+        .timing_h       = 0x0d202805, /* Horizantal timing */
+        .timing_v       = 0x01f00c05, /* Vertical timing */
+        .pol_freq       = 0x00000000, /* Pol Freq */
+        .divisor        = 0x00010002, /* 72Mhz Pixel Clock */
+        .lcd_size       = 0x01df031f, /* 800x480 */
+        .panel_type     = 0x01, /* TFT */
+        .data_lines     = 0x03, /* 24 Bit RGB */
+        .load_mode      = 0x02, /* Frame Mode */
+        .panel_color    = DVI_BEAGLE_ORANGE_COL /* ORANGE */
 };
 #endif
