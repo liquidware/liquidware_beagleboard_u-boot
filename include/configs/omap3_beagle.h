@@ -225,7 +225,7 @@
 #define CONFIG_BOOTDELAY		2
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"loadaddr=0x80200000\0" \
+	"loadaddr=0x82000000\0" \
 	"rdaddr=0x81000000\0" \
 	"usbtty=cdc_acm\0" \
 	"bootfile=uImage.beagle\0" \
@@ -239,7 +239,6 @@
 	"panel=none\0" \
 	"defaultdisplay=dvi\0" \
 	"mmcdev=0\0" \
-    "fbskip=1\0" \
 	"mmcroot=/dev/mmcblk0p2 rw\0" \
 	"mmcrootfstype=ext3 rootwait\0" \
 	"nandroot=/dev/mtdblock4 rw\0" \
@@ -254,7 +253,6 @@
 		"vram=${vram} " \
 		"omapfb.mode=dvi:${dvimode} " \
 		"omapdss.def_disp=${defaultdisplay} " \
-        "fbskip=${fbskip} " \
 		"root=${mmcroot} " \
 		"rootfstype=${mmcrootfstype}\0" \
 	"nandargs=setenv bootargs console=${console} " \
@@ -268,11 +266,11 @@
 		"root=${nandroot} " \
 		"rootfstype=${nandrootfstype}\0" \
 	"bootenv=uEnv.txt\0" \
-	"loadbootenv=fatload mmc ${mmcdev} ${loadaddr} ${bootenv}\0" \
+	"loadbootenv=fatload mmc ${mmcdev}:1 ${loadaddr} ${bootenv}\0" \
 	"importbootenv=echo Importing environment from mmc ...; " \
 		"env import -t $loadaddr $filesize\0" \
 	"bootscr=boot.scr\0" \
-	"loadbootscript=fatload mmc ${mmcdev} ${loadaddr} ${bootscr}\0" \
+	"loadbootscript=fatload mmc ${mmcdev}:1 ${loadaddr} ${bootscr}\0" \
 	"bootscript=echo Running bootscript from mmc${mmcdev} ...; " \
 		"source ${loadaddr}\0" \
 	"ramargs=setenv bootargs console=${console} " \
@@ -284,8 +282,8 @@
 		"omapdss.def_disp=${defaultdisplay} " \
 		"root=${ramroot} " \
 		"rootfstype=${ramrootfstype}\0" \
-	"loadramdisk=fatload mmc ${mmcdev} ${rdaddr} ramdisk.gz\0" \
-	"loaduimagefat=fatload mmc ${mmcdev} ${loadaddr} uImage\0" \
+	"loadramdisk=fatload mmc ${mmcdev}:1 ${rdaddr} ramdisk.gz\0" \
+	"loaduimagefat=fatload mmc ${mmcdev}:1 ${loadaddr} uImage\0" \
 	"loaduimage=ext2load mmc ${mmcdev}:2 ${loadaddr} /boot/uImage\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
@@ -308,18 +306,11 @@
 			"setenv bootenv user.txt;" \
 		"fi;" \
 		"echo SD/MMC found on device ${mmcdev};" \
-		"if run loadbootenv; then " \
-			"echo Loaded environment from ${bootenv};" \
-			"run importbootenv;" \
-			"if test -n $uenvcmd; then " \
-				"echo Running uenvcmd ...;" \
-				"run uenvcmd;" \
-			"fi;" \
-		"elif run loadbootscript; then " \
+		"if run loadbootscript; then " \
 			"echo Loaded script from ${bootscr};" \
 			"run bootscript; "\
 		"fi;" \
-		"if run loaduimage; then " \
+		"if run loaduimagefat; then " \
 			"run mmcboot;" \
 		"fi;" \
 	"fi;" \

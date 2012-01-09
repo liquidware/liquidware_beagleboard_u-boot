@@ -249,8 +249,8 @@ void omap3_dss_panel_config(const struct panel_config *panel_cfg)
     #define FB_ORIGIN 0x8fddc000
     #define FB_WIDTH 800
     #define FB_HEIGHT 480
-    #define BMP_ADDR 0x83000000
-    #define BMP_ADDR_STR "0x83000000"
+    #define BMP_ADDR 0x84000000
+    #define BMP_ADDR_STR "0x84000000"
 
 	struct dispc_regs *dispc = (struct dispc_regs *) OMAP3_DISPC_BASE;
     cmd_tbl_t *bcmd;

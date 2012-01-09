@@ -196,6 +196,7 @@ unsigned int get_expansion_id(void)
 //#define RESET_PIN		137 //disabled, testing OpenPad below
 #define RESET_PIN       129
 #define PANEL_PWR_PIN   143
+#define PANEL_PWM_PIN   55   //openpad backlight pwm
 
 extern int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 extern int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -204,8 +205,8 @@ extern int do_env_import(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
 void beagle_load_env_mmc(void) {
     cmd_tbl_t *bcmd;
     char * const argv_mmc[6] = { "mmc", "part", "0", NULL, NULL, NULL };
-    char * const argv_fatload[6] = { "fatload", "mmc", "0:1", "0x82000000", "uEnv.txt", NULL};
-    char * const argv_env_import[3] = { "-t", "0x82000000", NULL };
+    char * const argv_fatload[6] = { "fatload", "mmc", "0:1", "0x83000000", "uEnv.txt", NULL};
+    char * const argv_env_import[3] = { "-t", "0x83000000", NULL };
 
 	bcmd = find_cmd("mmc");
 	if (!bcmd) {
@@ -245,24 +246,28 @@ void beagle_panel_init(void) {
     char * panel = NULL;
 
     panel = getenv("panel");
-    if (panel != NULL)
-        printf("Found '%s' panel\n", panel);
+    if (panel == NULL)
+        return;
 
+    printf("Found '%s' panel\n", panel);
     if (gpio_request(CS_PIN,"") ||
         gpio_request(MOSI_PIN, "") ||
         gpio_request(CLK_PIN, "") ||
         gpio_request(RESET_PIN, "") ||
-        gpio_request(PANEL_PWR_PIN, "")) {
+        gpio_request(PANEL_PWR_PIN, "") ||
+        gpio_request(PANEL_PWM_PIN, "")) {
         printf("Error: Unable to get panel gpio\n");
         return;
     }
 
     printf("Setting up panel gpio\n");
 
-    if ((panel != NULL) &&
-        (!strcmp(panel,"oled43")) ) {
+    if (!strcmp(panel,"oled43")) {
         printf("Disabling %s panel power\n", panel);
         gpio_direction_output(PANEL_PWR_PIN, 0);
+    } else if (!strcmp(panel,"openpad70")){
+        gpio_direction_output(PANEL_PWR_PIN, 1);
+        gpio_direction_output(PANEL_PWM_PIN, 0);
     }
 
     gpio_direction_output(RESET_PIN, 0);
@@ -382,6 +387,7 @@ int misc_init_r(void)
 					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
 					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
+
 		break;
 	default:
 		printf("Beagle unknown 0x%02x\n", get_board_revision());
