@@ -745,7 +745,7 @@ sep_err:
  *	size:	length of input data; if missing, proper '\0'
  *		termination is mandatory
  */
-static int do_env_import(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_env_import(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char	*cmd, *addr;
 	char	sep = '\n';

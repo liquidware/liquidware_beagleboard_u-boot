@@ -236,7 +236,7 @@
 	"camera=none\0" \
 	"vram=12M\0" \
 	"dvimode=800x480MR-16@60\0" \
-	"panel=oled43\0" \
+	"panel=none\0" \
 	"defaultdisplay=dvi\0" \
 	"mmcdev=0\0" \
     "fbskip=1\0" \

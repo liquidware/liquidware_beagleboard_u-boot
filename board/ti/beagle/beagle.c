@@ -30,6 +30,9 @@
  * MA 02111-1307 USA
  */
 #include <common.h>
+#include <command.h>
+//#include <fat.h>
+#include <mmc.h>
 #ifdef CONFIG_STATUS_LED
 #include <status_led.h>
 #endif
@@ -194,43 +197,77 @@ unsigned int get_expansion_id(void)
 #define RESET_PIN       129
 #define PANEL_PWR_PIN   143
 
-void load_env_mmc() {
-cmd_tbl_t *bcmd;
-int r = 0;
-char * ep = 0x82000000;
-char * const argv_fatload[6] = { "fatload", "mmc", "0:1", "0x82000000", "uEnv.txt", NULL };
-char * const argv_mmc[6] = { "mmc", "part", "0", NULL, NULL, NULL };
+extern int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+extern int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+extern int do_env_import(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
-    bcmd = find_cmd("mmc");
-    if (!bcmd) {
-                printf("Error - 'mmc' command not present.\n");
+void beagle_load_env_mmc(void) {
+    cmd_tbl_t *bcmd;
+    char * const argv_mmc[6] = { "mmc", "part", "0", NULL, NULL, NULL };
+    char * const argv_fatload[6] = { "fatload", "mmc", "0:1", "0x82000000", "uEnv.txt", NULL};
+    char * const argv_env_import[3] = { "-t", "0x82000000", NULL };
+
+	bcmd = find_cmd("mmc");
+	if (!bcmd) {
+		printf("Error - 'mmc' command not present.\n");
         return;
     }
-        if (do_mmcops(bcmd, 0, 5, argv_mmc) != 0) {
+	if (do_mmcops(bcmd, 0, 5, argv_mmc) != 0) {
         printf("Error - mmc - cannot execute 'mmc part 0' \n");
         return;
     }
 
+    bcmd = find_cmd("fatload");
+    if (!bcmd) {
+        printf("Error - 'fatload' command not present.\n");
+        return;
+    }
+    if (do_fat_fsload(bcmd, 0, 5, argv_fatload) != 0) {
+        printf("Error - fatload - cannot find uEnv.txt\n");
+        return;
+    }
 
-bcmd = find_cmd("fatload");
-if (!bcmd) {
-    printf("Error - 'fatload' command not present.\n");
-    return;
+    printf("Importing env from mmc\n");
+    bcmd = find_cmd("env");
+    if (!bcmd) {
+        printf("Error - 'env' command not present.\n");
+        return;
+    }
+    if (do_env_import(bcmd, 0, 2, argv_env_import) != 0) {
+        printf("Error - cannot load uEnv.txt\n");
+        return;
+    } else {
+        printf("uEnv.txt loaded\n");
+    }
 }
-if (do_fat_fsload(bcmd, 0, 5, argv_fatload) != 0) {
-    printf("Error - fatload - cannot find uEnv.txt\n");
-    return;
-}
 
-printf("Importing env from mmc\n");
+void beagle_panel_init(void) {
+    char * panel = NULL;
 
-r = env_import((char *)ep, 0);
-if (!r) {
-	printf("Error importing uEnv.txt\n");
-} else {
-	printf("uEnv.txt loaded\n");
-}
+    panel = getenv("panel");
+    if (panel != NULL)
+        printf("Found '%s' panel\n", panel);
 
+    if (gpio_request(CS_PIN,"") ||
+        gpio_request(MOSI_PIN, "") ||
+        gpio_request(CLK_PIN, "") ||
+        gpio_request(RESET_PIN, "") ||
+        gpio_request(PANEL_PWR_PIN, "")) {
+        printf("Error: Unable to get panel gpio\n");
+        return;
+    }
+
+    printf("Setting up panel gpio\n");
+
+    if ((panel != NULL) &&
+        (!strcmp(panel,"oled43")) ) {
+        printf("Disabling %s panel power\n", panel);
+        gpio_direction_output(PANEL_PWR_PIN, 0);
+    }
+
+    gpio_direction_output(RESET_PIN, 0);
+    gpio_direction_output(RESET_PIN, 1);
+    gpio_direction_output(CS_PIN, 1);
 }
 
 /*
@@ -239,49 +276,28 @@ if (!r) {
  */
 void beagle_display_init(void)
 {
-char * panel = NULL;
+    /* Read the user env from mmc */
+    beagle_load_env_mmc();
 
-	omap3_dss_venc_config(&venc_config_std_tv, VENC_HEIGHT, VENC_WIDTH);
-	switch (get_board_revision()) {
-	case REVISION_AXBX:
-	case REVISION_CX:
-	case REVISION_C4:
-		omap3_dss_panel_config(&dvid_cfg_openpad);
-		break;
-	case REVISION_XM_A:
-	case REVISION_XM_B:
-	case REVISION_XM_C:
-	default:
-		//omap3_dss_panel_config(&dvid_cfg_xm);
-		omap3_dss_panel_config(&dvid_cfg_openpad);
-		break;
-	}
-
-   //load_env_mmc();
-    panel = getenv("panel");
-    if (panel != NULL)
-	printf("Found '%s' panel\n", panel);
-
-    if (gpio_request(CS_PIN,"") ||
-       gpio_request(MOSI_PIN, "") ||
-       gpio_request(CLK_PIN, "") ||
-       gpio_request(RESET_PIN, "") ||
-       gpio_request(PANEL_PWR_PIN, "")) {
-	printf("Error: Unable to get panel gpio\n");
-	return;
+    omap3_dss_venc_config(&venc_config_std_tv, VENC_HEIGHT, VENC_WIDTH);
+    switch (get_board_revision())
+    {
+    case REVISION_AXBX:
+    case REVISION_CX:
+    case REVISION_C4:
+        omap3_dss_panel_config(&dvid_cfg_openpad);
+        break;
+    case REVISION_XM_A:
+    case REVISION_XM_B:
+    case REVISION_XM_C:
+    default:
+        //omap3_dss_panel_config(&dvid_cfg_xm);
+        omap3_dss_panel_config(&dvid_cfg_openpad);
+        break;
     }
 
-	if ((panel != NULL) &&
-	    (!strcmp(panel,"oled43")) ) {
-		printf("Disabling %s panel\n", panel);
-		gpio_direction_output(PANEL_PWR_PIN, 0);
-	}
-
-	printf("Setting up panel gpio\n");
-
-        gpio_direction_output(RESET_PIN, 0);
-        gpio_direction_output(RESET_PIN, 1);
-        gpio_direction_output(CS_PIN, 1);
+    /* Init the panel */
+    beagle_panel_init();
 }
 
 /*
@@ -327,6 +343,7 @@ int misc_init_r(void)
 					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
 
+		/* Set VAUX1 to 2.8V for LCD */
         twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX1_DEDICATED,
 					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
 					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
@@ -343,6 +360,7 @@ int misc_init_r(void)
 					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
 
+		/* Set VAUX1 to 2.8V for LCD */
         twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX1_DEDICATED,
 					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
 					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
@@ -359,22 +377,11 @@ int misc_init_r(void)
 					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP, //0x76
 					TWL4030_PM_RECEIVER_DEV_GRP_P1); //0x20
 
+		/* Set VAUX1 to 2.8V for LCD */
         twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX1_DEDICATED,
 					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
 					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
-
-//#define ENABLE_VAUX1_DEDICATED	0x04
-//#define ENABLE_VAUX1_DEV_GRP	0x20
-//TWL4030_VAUX1_DEV_GRP = 0x17
-
-        /* Enable VAUX1 regulator */
-       // twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-    	//		ENABLE_VAUX1_DEDICATED,
-    	//		TWL4030_VAUX1_DEDICATED);
-       // twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-    	//		ENABLE_VAUX1_DEV_GRP,
-    	//		TWL4030_VAUX1_DEV_GRP);
 		break;
 	default:
 		printf("Beagle unknown 0x%02x\n", get_board_revision());
