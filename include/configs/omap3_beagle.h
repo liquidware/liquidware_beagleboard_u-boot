@@ -235,9 +235,11 @@
 	"optargs=\0" \
 	"camera=none\0" \
 	"vram=12M\0" \
-	"dvimode=640x480MR-16@60\0" \
+	"dvimode=800x480MR-16@60\0" \
+	"panel=oled43\0" \
 	"defaultdisplay=dvi\0" \
 	"mmcdev=0\0" \
+    "fbskip=1\0" \
 	"mmcroot=/dev/mmcblk0p2 rw\0" \
 	"mmcrootfstype=ext3 rootwait\0" \
 	"nandroot=/dev/mtdblock4 rw\0" \
@@ -252,6 +254,7 @@
 		"vram=${vram} " \
 		"omapfb.mode=dvi:${dvimode} " \
 		"omapdss.def_disp=${defaultdisplay} " \
+        "fbskip=${fbskip} " \
 		"root=${mmcroot} " \
 		"rootfstype=${mmcrootfstype}\0" \
 	"nandargs=setenv bootargs console=${console} " \

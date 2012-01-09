@@ -194,12 +194,53 @@ unsigned int get_expansion_id(void)
 #define RESET_PIN       129
 #define PANEL_PWR_PIN   143
 
+void load_env_mmc() {
+cmd_tbl_t *bcmd;
+int r = 0;
+char * ep = 0x82000000;
+char * const argv_fatload[6] = { "fatload", "mmc", "0:1", "0x82000000", "uEnv.txt", NULL };
+char * const argv_mmc[6] = { "mmc", "part", "0", NULL, NULL, NULL };
+
+    bcmd = find_cmd("mmc");
+    if (!bcmd) {
+                printf("Error - 'mmc' command not present.\n");
+        return;
+    }
+        if (do_mmcops(bcmd, 0, 5, argv_mmc) != 0) {
+        printf("Error - mmc - cannot execute 'mmc part 0' \n");
+        return;
+    }
+
+
+bcmd = find_cmd("fatload");
+if (!bcmd) {
+    printf("Error - 'fatload' command not present.\n");
+    return;
+}
+if (do_fat_fsload(bcmd, 0, 5, argv_fatload) != 0) {
+    printf("Error - fatload - cannot find uEnv.txt\n");
+    return;
+}
+
+printf("Importing env from mmc\n");
+
+r = env_import((char *)ep, 0);
+if (!r) {
+	printf("Error importing uEnv.txt\n");
+} else {
+	printf("uEnv.txt loaded\n");
+}
+
+}
+
 /*
  * Configure DSS to display background color on DVID
  * Configure VENC to display color bar on S-Video
  */
 void beagle_display_init(void)
 {
+char * panel = NULL;
+
 	omap3_dss_venc_config(&venc_config_std_tv, VENC_HEIGHT, VENC_WIDTH);
 	switch (get_board_revision()) {
 	case REVISION_AXBX:
@@ -216,21 +257,31 @@ void beagle_display_init(void)
 		break;
 	}
 
-    if (!gpio_request(CS_PIN,"") &&
-        !gpio_request(MOSI_PIN, "") &&
-        !gpio_request(CLK_PIN, "") &&
-        !gpio_request(RESET_PIN, "") &&
-        !gpio_request(PANEL_PWR_PIN, "")) {
+   //load_env_mmc();
+    panel = getenv("panel");
+    if (panel != NULL)
+	printf("Found '%s' panel\n", panel);
 
-        printf("Enabling LCD panel\n");
+    if (gpio_request(CS_PIN,"") ||
+       gpio_request(MOSI_PIN, "") ||
+       gpio_request(CLK_PIN, "") ||
+       gpio_request(RESET_PIN, "") ||
+       gpio_request(PANEL_PWR_PIN, "")) {
+	printf("Error: Unable to get panel gpio\n");
+	return;
+    }
+
+	if ((panel != NULL) &&
+	    (!strcmp(panel,"oled43")) ) {
+		printf("Disabling %s panel\n", panel);
+		gpio_direction_output(PANEL_PWR_PIN, 0);
+	}
+
+	printf("Setting up panel gpio\n");
+
         gpio_direction_output(RESET_PIN, 0);
         gpio_direction_output(RESET_PIN, 1);
         gpio_direction_output(CS_PIN, 1);
-
-    } else {
-    	printf("Error: Unable to set display gpio\n");
-    }
-
 }
 
 /*
@@ -275,6 +326,12 @@ int misc_init_r(void)
 					TWL4030_PM_RECEIVER_VAUX2_VSEL_18,
 					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
+
+        twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX1_DEDICATED,
+					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
+					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
+					TWL4030_PM_RECEIVER_DEV_GRP_P1);
+
 		break;
 	case REVISION_XM_B:
 		printf("Beagle xM Rev B\n");
@@ -285,16 +342,39 @@ int misc_init_r(void)
 					TWL4030_PM_RECEIVER_VAUX2_VSEL_18,
 					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
+
+        twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX1_DEDICATED,
+					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
+					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
+					TWL4030_PM_RECEIVER_DEV_GRP_P1);
+
 		break;
 	case REVISION_XM_C:
 		printf("Beagle xM Rev C\n");
 		setenv("beaglerev", "xMC");
 		MUX_BEAGLE_XM();
 		/* Set VAUX2 to 1.8V for EHCI PHY */
-		twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX2_DEDICATED,
-					TWL4030_PM_RECEIVER_VAUX2_VSEL_18,
-					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP,
+		twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX2_DEDICATED, //0x79
+					TWL4030_PM_RECEIVER_VAUX2_VSEL_18, //0x05
+					TWL4030_PM_RECEIVER_VAUX2_DEV_GRP, //0x76
+					TWL4030_PM_RECEIVER_DEV_GRP_P1); //0x20
+
+        twl4030_pmrecv_vsel_cfg(TWL4030_PM_RECEIVER_VAUX1_DEDICATED,
+					0x03, //TWL4030_PM_RECEIVER_VAUX1_VSEL_28,
+					TWL4030_PM_RECEIVER_VAUX1_DEV_GRP,
 					TWL4030_PM_RECEIVER_DEV_GRP_P1);
+
+//#define ENABLE_VAUX1_DEDICATED	0x04
+//#define ENABLE_VAUX1_DEV_GRP	0x20
+//TWL4030_VAUX1_DEV_GRP = 0x17
+
+        /* Enable VAUX1 regulator */
+       // twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+    	//		ENABLE_VAUX1_DEDICATED,
+    	//		TWL4030_VAUX1_DEDICATED);
+       // twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+    	//		ENABLE_VAUX1_DEV_GRP,
+    	//		TWL4030_VAUX1_DEV_GRP);
 		break;
 	default:
 		printf("Beagle unknown 0x%02x\n", get_board_revision());
